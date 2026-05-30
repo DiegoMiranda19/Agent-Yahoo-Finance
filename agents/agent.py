@@ -21,6 +21,18 @@ from .prompts import (
 from .tools import ToolRegistry
 
 
+def _sanitize_keys(self, obj: Any) -> Any:
+    """Convierte claves tipo tupla a strings para que json.dumps pueda serializarlas."""
+    if isinstance(obj, dict):
+        return {
+            str(k) if isinstance(k, tuple) else k: self._sanitize_keys(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [self._sanitize_keys(item) for item in obj]
+    return obj
+
+
 @dataclass
 class AgentResponse:
     """Final response returned by the financial agent."""
@@ -51,7 +63,7 @@ class FinancialResearchAgent:
         final_prompt = build_final_answer_prompt(
             user_question=user_question,
             tool_results=json.dumps(
-                tool_results,
+                self._sanitize_keys(tool_results),
                 indent=2,
                 ensure_ascii=False,
                 default=str,
